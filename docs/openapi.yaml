@@ -1,0 +1,583 @@
+openapi: 3.0.3
+info:
+  title: Grid Motors API
+  description: >
+    API REST para o sistema de locação de veículos da Grid Motors.
+    Permite o cadastro de carros, usuários, autenticação e reservas.
+  version: 1.0.0
+  contact:
+    name: Grid Motors
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Ambiente local
+
+tags:
+  - name: Autenticação
+  - name: Usuários
+  - name: Carros
+  - name: Reservas
+
+paths:
+  /auth/login:
+    post:
+      tags: [Autenticação]
+      summary: Autentica um usuário e retorna um token JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginInput'
+      responses:
+        '200':
+          description: Login realizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users:
+    post:
+      tags: [Usuários]
+      summary: Cadastra um novo usuário
+      description: >
+        O endereço completo é obtido automaticamente pela API ViaCEP a partir
+        do campo `cep` informado (apenas os dados até o campo `uf` são salvos).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+      responses:
+        '201':
+          description: Usuário criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Campos inválidos, CPF/e-mail já cadastrados ou CEP inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      tags: [Usuários]
+      summary: Lista usuários com paginação e busca por qualquer campo
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+        - in: query
+          name: name
+          schema: { type: string }
+        - in: query
+          name: email
+          schema: { type: string }
+        - in: query
+          name: cpf
+          schema: { type: string }
+        - in: query
+          name: uf
+          schema: { type: string }
+        - in: query
+          name: qualified
+          schema: { type: string, enum: [yes, no] }
+      responses:
+        '200':
+          description: Lista paginada de usuários
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserList'
+
+  /users/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      tags: [Usuários]
+      summary: Busca um usuário pelo ID
+      responses:
+        '200':
+          description: Usuário encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: ID com formato inválido
+        '404':
+          description: Usuário não encontrado
+    put:
+      tags: [Usuários]
+      summary: Atualiza um usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserInput'
+      responses:
+        '200':
+          description: Usuário atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Campos inválidos ou ID com formato inválido
+        '404':
+          description: Usuário não encontrado
+    delete:
+      tags: [Usuários]
+      summary: Remove um usuário
+      responses:
+        '204':
+          description: Usuário removido com sucesso
+        '400':
+          description: ID com formato inválido
+        '404':
+          description: Usuário não encontrado
+
+  /cars:
+    post:
+      tags: [Carros]
+      summary: Cadastra um novo carro
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarInput'
+      responses:
+        '201':
+          description: Carro criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+        '400':
+          description: Campos inválidos
+        '401':
+          description: Token ausente, inválido ou expirado
+    get:
+      tags: [Carros]
+      summary: Lista carros com paginação e busca por qualquer campo
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+        - in: query
+          name: model
+          schema: { type: string }
+        - in: query
+          name: color
+          schema: { type: string }
+        - in: query
+          name: year
+          schema: { type: integer }
+        - in: query
+          name: value_per_day
+          schema: { type: number }
+        - in: query
+          name: number_of_passengers
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Lista paginada de carros
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CarList'
+        '401':
+          description: Token ausente, inválido ou expirado
+
+  /cars/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      tags: [Carros]
+      summary: Busca um carro pelo ID
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Carro encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+        '400':
+          description: ID com formato inválido
+        '401':
+          description: Token ausente, inválido ou expirado
+        '404':
+          description: Carro não encontrado
+    put:
+      tags: [Carros]
+      summary: Atualiza um carro (qualquer campo, exceto o ID)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarInput'
+      responses:
+        '200':
+          description: Carro atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+        '400':
+          description: Campos inválidos ou ID com formato inválido
+        '401':
+          description: Token ausente, inválido ou expirado
+        '404':
+          description: Carro não encontrado
+    delete:
+      tags: [Carros]
+      summary: Remove um carro
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204':
+          description: Carro removido com sucesso
+        '400':
+          description: ID com formato inválido
+        '401':
+          description: Token ausente, inválido ou expirado
+        '404':
+          description: Carro não encontrado
+
+  /cars/{id}/accessories:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    patch:
+      tags: [Carros]
+      summary: Adiciona ou remove um acessório do carro
+      description: >
+        Se o acessório já existir no carro (comparação case-insensitive), ele
+        é removido. Caso contrário, é adicionado.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccessoryInput'
+      responses:
+        '200':
+          description: Acessório alternado com sucesso — retorna o carro atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+        '400':
+          description: Campo description ausente ou ID com formato inválido
+        '401':
+          description: Token ausente, inválido ou expirado
+        '404':
+          description: Carro não encontrado
+
+  /reservations:
+    post:
+      tags: [Reservas]
+      summary: Cria uma reserva
+      description: >
+        O usuário responsável (`id_user`) é sempre o usuário autenticado pelo
+        token — não é enviado no corpo da requisição. O `final_value` é
+        calculado automaticamente (value_per_day × dias reservados).
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationInput'
+      responses:
+        '201':
+          description: Reserva criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+        '400':
+          description: >
+            Campos inválidos, usuário não habilitado, carro/usuário com
+            reserva sobreposta no período
+        '401':
+          description: Token ausente, inválido ou expirado
+        '404':
+          description: Carro não encontrado
+    get:
+      tags: [Reservas]
+      summary: Lista reservas com paginação e busca por qualquer campo
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/offset'
+        - in: query
+          name: id_user
+          schema: { type: string, format: uuid }
+        - in: query
+          name: id_car
+          schema: { type: string, format: uuid }
+        - in: query
+          name: final_value
+          schema: { type: number }
+        - in: query
+          name: nome
+          description: Filtra pelo nome do usuário responsável pela reserva
+          schema: { type: string }
+      responses:
+        '200':
+          description: Lista paginada de reservas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReservationList'
+        '401':
+          description: Token ausente, inválido ou expirado
+
+  /reservations/{id}:
+    parameters:
+      - $ref: '#/components/parameters/id'
+    get:
+      tags: [Reservas]
+      summary: Busca uma reserva pelo ID
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Reserva encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+        '400':
+          description: ID com formato inválido
+        '401':
+          description: Token ausente, inválido ou expirado
+        '404':
+          description: Reserva não encontrada
+    put:
+      tags: [Reservas]
+      summary: Atualiza uma reserva
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationInput'
+      responses:
+        '200':
+          description: Reserva atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+        '400':
+          description: >
+            Campos inválidos, ID com formato inválido, ou carro já possui
+            outra reserva no período informado
+        '401':
+          description: Token ausente, inválido ou expirado
+        '404':
+          description: Reserva não encontrada
+    delete:
+      tags: [Reservas]
+      summary: Remove uma reserva
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204':
+          description: Reserva removida com sucesso
+        '400':
+          description: ID com formato inválido
+        '401':
+          description: Token ausente, inválido ou expirado
+        '404':
+          description: Reserva não encontrada
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    id:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    limit:
+      in: query
+      name: limit
+      description: Quantidade de itens por página (padrão 10, máximo 100)
+      schema: { type: integer, default: 10 }
+    offset:
+      in: query
+      name: offset
+      description: Número da página, começando em 1
+      schema: { type: integer, default: 1 }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              path: { type: string }
+              message: { type: string }
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+
+    LoginResponse:
+      type: object
+      properties:
+        token: { type: string }
+
+    AccessoryInput:
+      type: object
+      required: [description]
+      properties:
+        description: { type: string, example: 'air conditioner' }
+
+    Accessory:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        description: { type: string }
+
+    CarInput:
+      type: object
+      required: [model, color, year, value_per_day, accessories, number_of_passengers]
+      properties:
+        model: { type: string, example: 'GM S10 2.8' }
+        color: { type: string, example: 'White' }
+        year: { type: integer, minimum: 1950, maximum: 2023, example: 2021 }
+        value_per_day: { type: number, example: 50 }
+        accessories:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/AccessoryInput'
+        number_of_passengers: { type: integer, example: 5 }
+
+    Car:
+      allOf:
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+        - $ref: '#/components/schemas/CarInput'
+        - type: object
+          properties:
+            accessories:
+              type: array
+              items:
+                $ref: '#/components/schemas/Accessory'
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+
+    CarList:
+      type: object
+      properties:
+        car:
+          type: array
+          items:
+            $ref: '#/components/schemas/Car'
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+        offsets: { type: integer }
+
+    UserInput:
+      type: object
+      required: [name, cpf, birth, email, password, cep, qualified]
+      properties:
+        name: { type: string, example: 'Joãozinho Ciclano' }
+        cpf: { type: string, example: '131.147.860-49' }
+        birth: { type: string, example: '03/03/2000', description: 'formato dd/MM/yyyy' }
+        email: { type: string, format: email, example: 'joazinho@email.com' }
+        password: { type: string, minLength: 6, example: '123456' }
+        cep: { type: string, example: '01001000' }
+        qualified: { type: string, enum: [yes, no] }
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        cpf: { type: string }
+        birth: { type: string }
+        email: { type: string }
+        cep: { type: string }
+        logradouro: { type: string, nullable: true }
+        complemento: { type: string, nullable: true }
+        bairro: { type: string, nullable: true }
+        localidade: { type: string, nullable: true }
+        uf: { type: string, nullable: true }
+        qualified: { type: string, enum: [yes, no] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    UserList:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+        offsets: { type: integer }
+
+    ReservationInput:
+      type: object
+      required: [start_date, end_date, id_car]
+      properties:
+        start_date: { type: string, example: '20/04/2023', description: 'formato dd/MM/yyyy' }
+        end_date: { type: string, example: '30/04/2023', description: 'formato dd/MM/yyyy' }
+        id_car: { type: string, format: uuid }
+
+    Reservation:
+      type: object
+      properties:
+        id_reserve: { type: string, format: uuid }
+        id_user: { type: string, format: uuid }
+        start_date: { type: string }
+        end_date: { type: string }
+        id_car: { type: string, format: uuid }
+        final_value: { type: string, example: '500,00' }
+
+    ReservationList:
+      type: object
+      properties:
+        reserves:
+          type: array
+          items:
+            $ref: '#/components/schemas/Reservation'
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }
+        offsets: { type: integer }
