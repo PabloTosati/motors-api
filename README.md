@@ -184,11 +184,4 @@ Cada módulo segue a mesma arquitetura em camadas:
 routes → controller → service (regras de negócio) → repository (Knex/SQL) → mapper (resposta da API)
 ```
 
-## Próximos passos (fora do escopo do código)
 
-1. Criar um repositório **privado** no GitHub.
-2. `git remote add origin <url>` e `git push -u origin main` (e também a
-   branch `develop`, incluída no histórico deste projeto).
-3. Adicionar os instrutores/SM como membros do repositório.
-4. Configurar as variáveis de ambiente de produção (especialmente
-   `JWT_SECRET`) antes de qualquer deploy real.
