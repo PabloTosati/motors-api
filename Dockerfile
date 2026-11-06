@@ -5,7 +5,7 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 COPY tsconfig.json knexfile.ts ./
 
-RUN npm install
+RUN npm ci
 
 COPY src ./src
 COPY migrations ./migrations

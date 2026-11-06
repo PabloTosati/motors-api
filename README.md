@@ -1,187 +1,143 @@
 # Grid Motors API
 
-API REST para o sistema de locação de veículos da **Grid Motors**, desenvolvida
-como Desafio Final. Contempla cadastro de Carros, Usuários, Autenticação (JWT)
-e Reservas, com todas as regras de negócio descritas no desafio.
+[![CI](https://github.com/PabloTosati/motors-api/actions/workflows/ci.yml/badge.svg)](https://github.com/PabloTosati/motors-api/actions/workflows/ci.yml)
+![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
+![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 
-## Stack utilizada
+REST API for a car rental system: users, JWT authentication, cars with accessories and reservations with overlap rules.
 
-| Camada          | Tecnologia                                    |
-| --------------- | ---------------------------------------------- |
-| Linguagem       | TypeScript                                     |
-| Framework HTTP  | Express 5                                      |
-| Banco de dados  | PostgreSQL                                     |
-| Acesso a dados  | Knex.js (query builder + migrations)           |
-| Autenticação    | JWT (jsonwebtoken) + bcryptjs                  |
-| Validação       | Zod                                             |
-| Documentação    | Swagger / OpenAPI 3.0 (swagger-ui-express)     |
-| Testes          | Jest + Supertest + jest-mock-extended          |
-| Lint / Format   | ESLint 9 (flat config) + Prettier              |
-| Containerização | Docker + Docker Compose                        |
+🇧🇷 [Leia em português](README.pt-BR.md) (includes all technical decisions in detail)
 
-> **Por que Knex em vez de Prisma/TypeORM?** Knex é um query builder leve, sem
-> binários nativos ou dependências de download em tempo de build, o que o
-> torna extremamente previsível em qualquer ambiente (CI, containers restritos
-> etc.). Ele também deixa a camada de persistência (SQL, migrations, índices,
-> constraints) totalmente explícita e auditável — importante para o critério
-> de avaliação "qualidade da camada de persistência".
+## Highlights
 
-## Como executar o projeto localmente
+- **Modular, layered architecture**: each module has routes → controller → service → repository → mapper
+- **JWT authentication** with hashed passwords (bcrypt)
+- **Real business rules**: no overlapping reservations for the same car or user, only qualified users can rent, rental price calculated from the number of days
+- **Validation with Zod**, including official CPF check-digit validation (Brazilian tax ID)
+- **ViaCEP integration**: the user's address is filled in automatically from the postal code
+- **Interactive API docs** with Swagger / OpenAPI 3.0
+- **153 automated tests** (unit + HTTP integration), ~82% line coverage
+- **Docker Compose** with PostgreSQL; migrations run automatically
+- **Code quality**: ESLint + Prettier, GitHub Actions CI
 
-### Opção 1 — Docker Compose (recomendado)
+## Tech stack
 
-Pré-requisitos: Docker e Docker Compose instalados.
+| Layer | Technology |
+| --- | --- |
+| Language | TypeScript |
+| HTTP framework | Express 5 |
+| Database | PostgreSQL |
+| Data access | Knex.js (query builder + migrations) |
+| Authentication | JWT (jsonwebtoken) + bcryptjs |
+| Validation | Zod |
+| Documentation | Swagger / OpenAPI 3.0 |
+| Tests | Jest + Supertest + jest-mock-extended |
+| Code quality | ESLint + Prettier |
+| Containers | Docker + Docker Compose |
+| CI | GitHub Actions |
+
+## Getting started
+
+### With Docker (recommended)
 
 ```bash
-git clone <url-do-seu-repositorio>
-cd grid-motors-api
+git clone https://github.com/PabloTosati/motors-api.git
+cd motors-api
 docker compose up --build
 ```
 
-Isso sobe dois containers: `db` (PostgreSQL 16) e `api` (a aplicação). Na
-subida, o container da API automaticamente roda as migrations
-(`npm run db:migrate`) antes de iniciar o servidor.
+This starts PostgreSQL and the API. Migrations run automatically before the server starts.
 
-A API estará disponível em `http://localhost:3000` e o Swagger em
-`http://localhost:3000/api/v1/api-docs`.
+- API: `http://localhost:3000`
+- Swagger docs: `http://localhost:3000/api/v1/api-docs`
 
-### Opção 2 — Rodando localmente (sem Docker para a API)
+### Without Docker
 
-Pré-requisitos: Node.js 18+ e um PostgreSQL acessível (local ou via Docker
-apenas para o banco).
+Requirements: Node.js 18+ and a PostgreSQL database.
 
 ```bash
-# 1. Instalar dependências
 npm install
-
-# 2. Configurar variáveis de ambiente
-cp .env.example .env
-# edite o .env se necessário (ex: se seu Postgres não usa usuário/senha "postgres")
-
-# 3. Subir apenas o banco via Docker (opcional, se não tiver Postgres local)
-docker compose up -d db
-
-# 4. Rodar as migrations
+cp .env.example .env      # adjust DATABASE_URL and JWT_SECRET if needed
 npm run db:migrate
-
-# 5. Subir a API em modo desenvolvimento (hot reload)
 npm run dev
-
-# ...ou compilar e rodar em modo produção
-npm run build
-npm start
 ```
 
-### Rodando os testes
-
-Os testes são **totalmente isolados** (repositórios mockados) e não exigem um
-banco de dados ativo:
+### Tests and code quality
 
 ```bash
-npm test              # roda a suíte
-npm run test:coverage # roda com relatório de cobertura (mínimo exigido: 60%)
+npm test               # run the test suite (no database needed)
+npm run test:coverage  # with coverage report
+npm run lint           # ESLint
+npm run format:check   # Prettier
 ```
 
-### Lint e formatação
+The tests mock the data layer, so they run without a database.
 
-```bash
-npm run lint          # ESLint
-npm run format:check  # Verifica formatação (Prettier)
-npm run format        # Aplica a formatação
-```
+## Endpoints
 
-## Endpoints e documentação
+All routes are prefixed with `/api/v1`. Full payloads and responses are in Swagger.
 
-Com o projeto no ar, a documentação completa (todas as rotas, payloads e
-códigos de resposta) fica disponível via Swagger UI em:
+| Module | Method | Endpoint | Auth |
+| --- | --- | --- | --- |
+| Auth | POST | `/auth/login` | – |
+| Users | POST | `/users` | – |
+| Users | GET | `/users`, `/users/:id` | – |
+| Users | PUT / DELETE | `/users/:id` | – |
+| Cars | POST | `/cars` | Bearer token |
+| Cars | GET | `/cars`, `/cars/:id` | Bearer token |
+| Cars | PUT / DELETE | `/cars/:id` | Bearer token |
+| Cars | PATCH | `/cars/:id/accessories` | Bearer token |
+| Reservations | POST | `/reservations` | Bearer token |
+| Reservations | GET | `/reservations`, `/reservations/:id` | Bearer token |
+| Reservations | PUT / DELETE | `/reservations/:id` | Bearer token |
 
-```
-http://localhost:3000/api/v1/api-docs
-```
+List endpoints support pagination (`limit` = items per page, `offset` = page number) and filters.
 
-### Autenticação
+User routes are public because the original challenge required it. In a production system, updating and deleting users would require authentication.
 
-Rotas de **Carros** e **Reservas** exigem um Bearer Token, obtido via login:
+## Business rules
 
-```
-POST /api/v1/auth/login
-Authorization: Bearer <token>   (nas rotas protegidas)
-```
+| Area | Rule |
+| --- | --- |
+| Users | CPF and email must be unique; CPF validated by its check digits; address filled from the CEP via ViaCEP |
+| Cars | Year between 1950 and 2023, at least one accessory, no duplicated accessories (case-insensitive) |
+| Accessories | The accessories route toggles an item: adds it if missing, removes it if present |
+| Reservations | Only qualified users can rent; a car cannot have two reservations in the same period; a user cannot have overlapping reservations |
+| Price | `final_value` = daily price × number of days between start and end date |
 
-## Decisões técnicas e suposições
-
-O documento do desafio é bastante completo, mas alguns pontos ficam em aberto
-ou ambíguos. Seguem as decisões tomadas, todas com uma justificativa:
-
-- **Escopo do Bearer Token**: o desafio exige explicitamente Bearer Token
-  apenas nas rotas de **Carros**. As rotas de **Reservas** também foram
-  protegidas, pois o corpo de "criar reserva" não envia `id_user` — ele só
-  pode vir do usuário autenticado no token. As rotas de **Usuários** foram
-  mantidas públicas (cadastro precisa ser acessível sem token, e o desafio não
-  exige Bearer Token ali). É trivial adicionar o middleware `authMiddleware`
-  a qualquer rota adicional, se desejado.
-- **Paginação (`limit`/`offset`/`offsets`)**: o exemplo do desafio
-  (`total: 1000, limit: 100, offset: 1, offsets: 10`) só faz sentido se
-  `offset` for o **número da página** (1-indexado) e `offsets` o **total de
-  páginas** (`ceil(total / limit)`), e não um "skip" de registros. Foi essa a
-  interpretação implementada.
-- **Chaves de resposta das listagens**: mantidas exatamente como no PDF, mesmo
-  parecendo inconsistentes — `car` (singular) na listagem de carros e
-  `reserves` na listagem de reservas.
-- **Campo `id` nas respostas de Carros**: os exemplos de request/response de
-  "cadastrar" e "atualizar" carro no PDF não mostram `id` no corpo de
-  resposta, o que impediria o cliente de referenciar o recurso criado. O `id`
-  foi incluído em todas as respostas (como já ocorre no exemplo de listagem).
-- **Campo `year`**: o exemplo mostra `"year": "2021"` (string), mas a regra
-  exige comparação numérica (1950–2023). A API aceita string ou número na
-  entrada e converte/valida como inteiro.
-- **Campo `qualified`**: a regra escrita exige os valores `yes`/`no`
-  (o exemplo de payload usa `"sim"`, aparentemente uma inconsistência do
-  documento). Foi seguida a regra explícita (`yes`/`no`).
-- **Acessórios duplicados**: comparação **case-insensitive** (`"AR"` e `"ar"`
-  são consideradas o mesmo acessório), tanto no cadastro/atualização do carro
-  quanto na rota de alternar (adicionar/remover) acessório.
-- **Cálculo de `final_value`**: `value_per_day × número de dias entre
-  start_date e end_date`. Confirmado contra o exemplo do próprio desafio:
-  50/dia × 10 dias = `500,00`.
-- **Correção de typo**: o payload de exemplo da rota de acessórios usa o
-  campo `descricption`; foi usado o nome correto, `description`.
-- **CPF**: validado pelo algoritmo oficial de dígitos verificadores (módulo
-  11), não apenas por formato/regex, e armazenado normalizado (somente
-  dígitos) para a checagem de unicidade funcionar independente de formatação.
-- **ViaCEP**: apenas os campos até `uf` são persistidos (`cep`, `logradouro`,
-  `complemento`, `bairro`, `localidade`, `uf`), conforme instruído; os demais
-  campos retornados pela API (`ibge`, `gia`, `ddd`, `siafi`) são descartados.
-- **IDs**: UUID v4. Formato inválido → `400`; formato válido mas inexistente
-  → `404`.
-
-## Estrutura do projeto
+## Project structure
 
 ```
 src/
-├── app.ts                  # configuração do Express (middlewares, rotas, Swagger)
-├── server.ts                # ponto de entrada
-├── config/                  # variáveis de ambiente
-├── database/                 # conexão Knex
-├── middlewares/              # auth (Bearer), tratamento de erros, async handler
-├── utils/                    # CPF, datas, paginação, ViaCEP, IDs, moeda
+├── app.ts            # Express setup (middlewares, routes, Swagger)
+├── server.ts         # Entry point
+├── config/           # Environment variables
+├── database/         # Knex connection
+├── middlewares/      # Auth (Bearer), error handling, async handler
+├── utils/            # CPF, dates, pagination, ViaCEP, IDs, currency
 └── modules/
-    ├── auth/                 # login (JWT)
-    ├── users/                 # CRUD de usuários + integração ViaCEP
-    ├── cars/                  # CRUD de carros + acessórios
-    └── reservations/          # CRUD de reservas + regras de sobreposição
-
-migrations/    # migrations do Knex (users, cars, accessories, reservations)
-docs/          # especificação OpenAPI (Swagger)
-tests/
-├── unit/       # utils, validação (Zod) e regras de negócio (services mockados)
-└── integration/ # rotas HTTP de ponta a ponta (Supertest), repositórios mockados
+    ├── auth/         # Login (JWT)
+    ├── users/        # Users + ViaCEP
+    ├── cars/         # Cars + accessories
+    └── reservations/ # Reservations + overlap rules
+migrations/           # Knex migrations
+docs/                 # OpenAPI spec
+tests/                # Unit and integration tests
 ```
 
-Cada módulo segue a mesma arquitetura em camadas:
+## Configuration
 
-```
-routes → controller → service (regras de negócio) → repository (Knex/SQL) → mapper (resposta da API)
-```
+| Variable | Description |
+| --- | --- |
+| `PORT` | HTTP port (default `3000`) |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | Secret used to sign tokens (required in production) |
+| `JWT_EXPIRES_IN` | Token lifetime (default `1d`) |
 
+## Author
 
+**Pablo Tosati**: backend developer (Node.js, TypeScript)
+[GitHub](https://github.com/PabloTosati)

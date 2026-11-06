@@ -8,11 +8,17 @@ function required(name: string, fallback?: string): string {
   return value;
 }
 
+const nodeEnv = process.env.NODE_ENV ?? 'development';
+
 export const env = {
   port: Number(process.env.PORT ?? 3000),
   databaseUrl: required('DATABASE_URL'),
-  jwtSecret: required('JWT_SECRET', 'dev-secret-change-me'),
+  // Em produção o segredo é obrigatório: um valor padrão permitiria forjar tokens.
+  jwtSecret:
+    nodeEnv === 'production'
+      ? required('JWT_SECRET')
+      : required('JWT_SECRET', 'dev-secret-change-me'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '1d',
-  nodeEnv: process.env.NODE_ENV ?? 'development',
-  isTest: process.env.NODE_ENV === 'test',
+  nodeEnv,
+  isTest: nodeEnv === 'test',
 };

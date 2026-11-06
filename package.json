@@ -27,7 +27,7 @@
     "typescript",
     "knex"
   ],
-  "author": "",
+  "author": "Pablo Tosati",
   "license": "ISC",
   "dependencies": {
     "axios": "^1.18.1",
